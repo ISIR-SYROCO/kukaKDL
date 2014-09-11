@@ -1,0 +1,56 @@
+# Copyright 2014 ISIR-CNRS
+# Authors: Sovannara HAK
+
+CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
+PROJECT(kukakdl)
+
+IF(NOT CMAKE_BUILD_TYPE)
+    SET(CMAKE_BUILD_TYPE Release)
+ENDIF()
+
+SET(CMAKE_CXX_FLAGS "-fpermissive")
+
+IF(MSVC)
+    SET(LIB_TYPE "STATIC")
+    SET(suffix_type "_static")
+    SET(install_type "ARCHIVE")
+ELSE()
+    SET(LIB_TYPE "SHARED")
+    SET(suffix_type "")
+    IF(UNIX)
+        SET(install_type "LIBRARY")
+    ELSE()
+        SET(install_type "RUNTIME")
+    ENDIF()
+ENDIF()
+
+IF (UNIX)
+    ADD_DEFINITIONS(-DUNIX)
+ENDIF (UNIX)
+
+FIND_PACKAGE(PkgConfig REQUIRED)
+
+PKG_CHECK_MODULES(PC_OROCOS_KDL orocos-kdl REQUIRED)
+if(NOT PC_OROCOS_KDL_FOUND)
+    message("Failed to detect orocos-kdl, check PKG_CONFIG_PATH.")
+endif(NOT PC_OROCOS_KDL_FOUND)
+
+PKG_CHECK_MODULES(PC_EIGEN eigen3 REQUIRED)
+if(NOT PC_EIGEN_FOUND)
+    message("Failed to detect Eigen, check PKG_CONFIG_PATH." )
+endif(NOT PC_EIGEN_FOUND)
+
+INCLUDE_DIRECTORIES(
+    ${PROJECT_SOURCE_DIR}/include
+    ${PC_OROCOS_KDL_INCLUDE_DIRS}
+    ${PC_EIGEN_INCLUDE_DIRS}
+)
+
+LINK_DIRECTORIES(
+    ${PC_OROCOS_KDL_LIBRARY_DIRS}
+)
+
+ADD_SUBDIRECTORY(src)
+ADD_SUBDIRECTORY(include)
+ADD_SUBDIRECTORY(pkg-config)
+ADD_SUBDIRECTORY(test)
