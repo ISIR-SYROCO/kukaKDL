@@ -29,6 +29,12 @@ int main(){
     std::cout << model.getSegmentPosition(segment) << std::endl << std::endl;
 
     std::cout << model.jacobian.data << std::endl << std::endl;
+
+    std::cout << "Change ref point " << std::endl;
+    KDL::Vector v(0.0, -0.3, 0.2);
+    model.jacobian.changeRefPoint(v); 
+    std::cout << model.jacobian.data << std::endl;
+
     
     return 0;
 
