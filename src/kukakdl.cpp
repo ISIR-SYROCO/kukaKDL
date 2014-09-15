@@ -3,7 +3,7 @@
 // Author:  Sovan Hak (hak@isir.upmc.fr) 
 // Description:  
 
-#include "kukakdl.hpp"
+#include "kukakdl/kukakdl.hpp"
 
 KukaKDL::KukaKDL(){
     //joint 0
