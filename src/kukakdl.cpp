@@ -16,6 +16,8 @@ KukaKDL::KukaKDL(){
     segment_map.push_back("06");
     segment_map.push_back("07");
 
+    KDL::Chain chain;
+
     //joint 0
     chain.addSegment(KDL::Segment("base", KDL::Joint(KDL::Joint::None),
                 KDL::Frame::DH_Craig1989(0.0, 0.0, 0.31, 0.0)
@@ -80,7 +82,7 @@ KukaKDL::KukaKDL(){
 }
 
 void KukaKDL::setJointPosition(std::vector<double> &q_des){
-    for(unsigned int i=0; i<chain.getNrOfJoints(); i++){
+    for(unsigned int i=0; i<tree.getNrOfJoints(); i++){
         q(i) = q_des[i];
     }
 }
@@ -98,13 +100,13 @@ KDL::Frame KukaKDL::getSegmentPosition(int segment){
 }
 
 KDL::Jacobian KukaKDL::getSegmentJacobian(std::string& segment_name){
-    KDL::Jacobian j(chain.getNrOfJoints());
+    KDL::Jacobian j(tree.getNrOfJoints());
     treejacsolver->JntToJac(q, j, segment_name);
     return j;
 }
 
 KDL::Jacobian KukaKDL::getSegmentJacobian(int segment){
-    KDL::Jacobian j(chain.getNrOfJoints());
+    KDL::Jacobian j(tree.getNrOfJoints());
     treejacsolver->JntToJac(q, j, segment_map[segment]);
     return j;
 }

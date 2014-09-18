@@ -62,8 +62,6 @@ class KukaKDL{
          */
         KDL::Tree tree;
 
-        KDL::Chain chain;
-
         /**
          * @brief Mapping between segment index and segment name.
          */
