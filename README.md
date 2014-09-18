@@ -1,7 +1,7 @@
 KukaKDL
 =======
 
-Kuka LWR Model using KDL
+Kuka LWR Model using KDL and SYMORO+
 
 Build
 =====
