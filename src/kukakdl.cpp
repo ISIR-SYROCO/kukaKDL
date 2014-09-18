@@ -6,15 +6,15 @@
 #include "kukakdl/kukakdl.hpp"
 
 KukaKDL::KukaKDL(){
-    joint_map.push_back("base");
-    joint_map.push_back("00");
-    joint_map.push_back("01");
-    joint_map.push_back("02");
-    joint_map.push_back("03");
-    joint_map.push_back("04");
-    joint_map.push_back("05");
-    joint_map.push_back("06");
-    joint_map.push_back("07");
+    segment_map.push_back("base");
+    segment_map.push_back("00");
+    segment_map.push_back("01");
+    segment_map.push_back("02");
+    segment_map.push_back("03");
+    segment_map.push_back("04");
+    segment_map.push_back("05");
+    segment_map.push_back("06");
+    segment_map.push_back("07");
 
     //joint 0
     chain.addSegment(KDL::Segment("base", KDL::Joint(KDL::Joint::None),
@@ -93,7 +93,7 @@ KDL::Frame KukaKDL::getSegmentPosition(std::string& segment_name){
 
 KDL::Frame KukaKDL::getSegmentPosition(int segment){
     KDL::Frame cart_pos;
-    fksolver->JntToCart(q, cart_pos, joint_map[segment]);
+    fksolver->JntToCart(q, cart_pos, segment_map[segment]);
     return cart_pos;
 }
 
@@ -105,6 +105,6 @@ KDL::Jacobian KukaKDL::getSegmentJacobian(std::string& segment_name){
 
 KDL::Jacobian KukaKDL::getSegmentJacobian(int segment){
     KDL::Jacobian j(chain.getNrOfJoints());
-    treejacsolver->JntToJac(q, j, joint_map[segment]);
+    treejacsolver->JntToJac(q, j, segment_map[segment]);
     return j;
 }
