@@ -74,14 +74,10 @@ KukaKDL::KukaKDL(){
 
     tree.addChain(chain, "root");
 
-    fksolver = new KDL::ChainFkSolverPos_recursive(chain);
-    jacsolver = new KDL::ChainJntToJacSolver(chain);
-
     treejacsolver = new KDL::TreeJntToJacSolver(tree);
+    fksolver = new KDL::TreeFkSolverPos_recursive(tree);
 
     q.resize(chain.getNrOfJoints());
-
-    jacobian.resize(chain.getNrOfJoints());
 }
 
 void KukaKDL::setJointPosition(std::vector<double> &q_des){
@@ -90,13 +86,9 @@ void KukaKDL::setJointPosition(std::vector<double> &q_des){
     }
 }
 
-void KukaKDL::computeJacobian(){
-    jacsolver->JntToJac(q, jacobian);
-}
-
 KDL::Frame KukaKDL::getSegmentPosition(int segment){
     KDL::Frame cart_pos;
-    fksolver->JntToCart(q, cart_pos, segment);
+    fksolver->JntToCart(q, cart_pos, joint_map[segment]);
     return cart_pos;
 }
 

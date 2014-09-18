@@ -7,6 +7,15 @@
 #include <iostream>
 #include <kdl/frames_io.hpp>
 
+void computeSegmentJacobian(KukaKDL& model){
+    for(int i=0; i<8; ++i){
+        std::cout << "Segment Jacobian " << i << std::endl;
+        KDL::Jacobian j = model.getSegmentJacobian(i);
+        j.changeBase(model.getSegmentPosition(i).M.Inverse()); 
+        std::cout << j.data << std::endl;
+    }
+}
+
 int main(){
     KukaKDL model;
     int segment = 8;
@@ -15,30 +24,10 @@ int main(){
     std::vector<double> q1(q_1, q_1+7);
     std::vector<double> q2(q_2, q_2+7);
     model.setJointPosition(q1);
-    model.computeJacobian();
-    model.jacobian.changeBase(model.getSegmentPosition(segment).M.Inverse());
+    computeSegmentJacobian(model);
 
-    std::cout << model.getSegmentPosition(segment) << std::endl << std::endl;
-
-    std::cout << model.jacobian.data << std::endl <<std::endl;
-    
     model.setJointPosition(q2);
-    model.computeJacobian();
-    model.jacobian.changeBase(model.getSegmentPosition(segment).M.Inverse()); 
-
-    std::cout << model.getSegmentPosition(segment) << std::endl << std::endl;
-
-    std::cout << model.jacobian.data << std::endl << std::endl;
-
-    std::cout << "Change ref point " << std::endl;
-    KDL::Vector v(0.0, -0.3, 0.2);
-    model.jacobian.changeRefPoint(v); 
-    std::cout << model.jacobian.data << std::endl;
-
-    for(int i=0; i<8; ++i){
-        std::cout << "Segment Jacobian " << i << std::endl;
-        std::cout << model.getSegmentJacobian(i).data << std::endl;
-    }
+    computeSegmentJacobian(model);
     return 0;
 
 }

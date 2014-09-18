@@ -9,7 +9,7 @@
 
 #include <kdl/chain.hpp>
 #include <kdl/tree.hpp>
-#include <kdl/chainfksolverpos_recursive.hpp>
+#include <kdl/treefksolverpos_recursive.hpp>
 #include <kdl/chainjnttojacsolver.hpp>
 #include <kdl/treejnttojacsolver.hpp>
 #include <iostream>
@@ -18,15 +18,10 @@
 class KukaKDL{
     public:
         KukaKDL();
-        KDL::Tree tree;
-        KDL::Jacobian jacobian;
         KDL::JntArray q;
-        KDL::ChainFkSolverPos_recursive* fksolver;
-        KDL::ChainJntToJacSolver* jacsolver;
+        KDL::TreeFkSolverPos_recursive* fksolver;
         KDL::TreeJntToJacSolver* treejacsolver;
 
-        void computeJacobian();
-        
         KDL::Frame getSegmentPosition(int segment);
         KDL::Frame getSegmentPosition(std::string& segment_name);
 
@@ -35,8 +30,8 @@ class KukaKDL{
 
         void setJointPosition(std::vector<double> &q_des);
 
-
     private:
+        KDL::Tree tree;
         KDL::Chain chain;
         std::vector<std::string> joint_map;
         
