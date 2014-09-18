@@ -18,6 +18,7 @@
 class KukaKDL{
     public:
         KukaKDL();
+        
         KDL::JntArray q;
         KDL::TreeFkSolverPos_recursive* fksolver;
         KDL::TreeJntToJacSolver* treejacsolver;

@@ -6,7 +6,6 @@
 #include "kukakdl/kukakdl.hpp"
 
 KukaKDL::KukaKDL(){
-
     joint_map.push_back("base");
     joint_map.push_back("00");
     joint_map.push_back("01");
@@ -86,10 +85,22 @@ void KukaKDL::setJointPosition(std::vector<double> &q_des){
     }
 }
 
+KDL::Frame KukaKDL::getSegmentPosition(std::string& segment_name){
+    KDL::Frame cart_pos;
+    fksolver->JntToCart(q, cart_pos, segment_name);
+    return cart_pos;
+}
+
 KDL::Frame KukaKDL::getSegmentPosition(int segment){
     KDL::Frame cart_pos;
     fksolver->JntToCart(q, cart_pos, joint_map[segment]);
     return cart_pos;
+}
+
+KDL::Jacobian KukaKDL::getSegmentJacobian(std::string& segment_name){
+    KDL::Jacobian j(chain.getNrOfJoints());
+    treejacsolver->JntToJac(q, j, segment_name);
+    return j;
 }
 
 KDL::Jacobian KukaKDL::getSegmentJacobian(int segment){
