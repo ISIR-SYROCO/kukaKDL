@@ -45,6 +45,8 @@ class KukaKDL{
 
         int nbSegments();
 
+        KDL::Segment getSegment(int segment);
+
         /**
          * @brief Return a segment position of the robot.
          *
@@ -80,8 +82,8 @@ class KukaKDL{
         Eigen::VectorXd& getActuatedDofs();
         Eigen::VectorXd& getJointLowerLimits();
         Eigen::VectorXd& getJointUpperLimits();
-        Eigen::VectorXd& getJointPositions();
-        Eigen::VectorXd& getJointVelocities();
+        KDL::JntArray& getJointPositions();
+        KDL::JntArray& getJointVelocities();
         KDL::JntSpaceInertiaMatrix& getInertiaMatrix();
         KDL::JntArray& getNonLinearTerms();
         KDL::JntArray& getGravityTerms();

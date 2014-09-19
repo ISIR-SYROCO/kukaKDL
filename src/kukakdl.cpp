@@ -126,6 +126,10 @@ int KukaKDL::nbSegments(){
     return tree.getNrOfSegments();
 }
 
+KDL::Segment KukaKDL::getSegment(int segment){
+    return tree.getSegment(segment_map[segment])->second.segment;
+}
+
 KDL::Frame KukaKDL::getSegmentPosition(int segment){
     KDL::Frame cart_pos;
     fksolver->JntToCart(q, cart_pos, segment_map[segment]);
@@ -173,12 +177,12 @@ Eigen::VectorXd& KukaKDL::getJointUpperLimits(){
     return upperLimits;
 }
 
-Eigen::VectorXd& KukaKDL::getJointPositions(){
-    return q.data;
+KDL::JntArray& KukaKDL::getJointPositions(){
+    return q;
 }
 
-Eigen::VectorXd& KukaKDL::getJointVelocities(){
-    return qd.data;
+KDL::JntArray& KukaKDL::getJointVelocities(){
+    return qd;
 }
 
 KDL::JntSpaceInertiaMatrix& KukaKDL::getInertiaMatrix(){
