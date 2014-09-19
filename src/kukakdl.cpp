@@ -78,6 +78,7 @@ KukaKDL::KukaKDL(){
 
     treejacsolver = new KDL::TreeJntToJacSolver(tree);
     fksolver = new KDL::TreeFkSolverPos_recursive(tree);
+    fksolvervel = new KDL::ChainFkSolverVel_recursive(chain);
 
     q.resize(chain.getNrOfJoints());
 
@@ -111,14 +112,25 @@ KukaKDL::KukaKDL(){
 	CY7 = 0.;
 	CZ7 = 0.;
 
+    actuatedDofs = Eigen::VectorXd::Constant(tree.getNrOfJoints(), 1);
+    lowerLimits.resize(tree.getNrOfJoints());
+    lowerLimits << -2.97, -2.10, -2.97, -2.10, -2.97, -2.10, -2.97;
+    upperLimits.resize(tree.getNrOfJoints());
+    upperLimits << 2.97, 2.10, 2.97, 2.10, 2.97, 2.10, 2.97;
+
+
+    outdate();
 }
 
-void KukaKDL::setJointPosition(std::vector<double> &q_des){
-    for(unsigned int i=0; i<tree.getNrOfJoints(); i++){
-        q(i) = q_des[i];
-    }
+int KukaKDL::nbSegments(){
+    return tree.getNrOfSegments();
 }
 
+KDL::Frame KukaKDL::getSegmentPosition(int segment){
+    KDL::Frame cart_pos;
+    fksolver->JntToCart(q, cart_pos, segment_map[segment]);
+    return cart_pos;
+}
 
 KDL::Frame KukaKDL::getSegmentPosition(std::string& segment_name){
     KDL::Frame cart_pos;
@@ -126,7 +138,82 @@ KDL::Frame KukaKDL::getSegmentPosition(std::string& segment_name){
     return cart_pos;
 }
 
+KDL::Twist KukaKDL::getSegmentVelocity(int segment){
+    KDL::FrameVel cart_vel;
+    KDL::JntArrayVel vel(q, qd);
+    fksolvervel->JntToCart(vel, cart_vel, segment);
+    return cart_vel.GetTwist();
+}
+
+KDL::Jacobian KukaKDL::getSegmentJacobian(int segment){
+    KDL::Jacobian j(tree.getNrOfJoints());
+    treejacsolver->JntToJac(q, j, segment_map[segment]);
+    return j;
+}
+
+KDL::Jacobian KukaKDL::getSegmentJacobian(std::string& segment_name){
+    KDL::Jacobian j(tree.getNrOfJoints());
+    treejacsolver->JntToJac(q, j, segment_name);
+    return j;
+}
+
+KDL::Jacobian KukaKDL::getJointJacobian(int segment){
+    return getSegmentJacobian(segment);
+}
+
+Eigen::VectorXd& KukaKDL::getActuatedDofs(){
+    return actuatedDofs;
+}
+
+Eigen::VectorXd& KukaKDL::getJointLowerLimits(){
+    return lowerLimits;
+}
+
+Eigen::VectorXd& KukaKDL::getJointUpperLimits(){
+    return upperLimits;
+}
+
+Eigen::VectorXd& KukaKDL::getJointPositions(){
+    return q.data;
+}
+
+Eigen::VectorXd& KukaKDL::getJointVelocities(){
+    return qd.data;
+}
+
+KDL::JntSpaceInertiaMatrix& KukaKDL::getInertiaMatrix(){
+    if(inertiaMatrixOutdated == true){
+        computeMassMatrixFromKDL();
+        inertiaMatrixOutdated = false;
+    }
+    return massMatrixFromKDL;
+}
+
+KDL::JntArray& KukaKDL::getNonLinearTerms(){
+    if(corioCentriTorqueOutdated == true){
+        computeCorioCentriTorqueFromKDL();
+        corioCentriTorqueOutdated = false;
+    }
+    return corioCentriTorqueFromKDL;
+}
+
+KDL::JntArray& KukaKDL::getGravityTerms(){
+    if(gravityOutdated == true){
+        computeGravityTorqueFromKDL();
+        gravityOutdated = false;
+    }
+    return gravityTorqueFromKDL;
+}
+
+void KukaKDL::setJointPosition(std::vector<double> &q_des){
+    outdate();
+    for(unsigned int i=0; i<tree.getNrOfJoints(); i++){
+        q(i) = q_des[i];
+    }
+}
+
 void KukaKDL::setJointVelocity(std::vector<double> &qd_des){
+    outdate();
     for(unsigned int i=0; i<tree.getNrOfJoints(); i++){
         qd(i) = qd_des[i];
     }
@@ -174,8 +261,6 @@ void KukaKDL::setExternalToolWrench(KDL::Wrench W_ext){
 }
 
 void KukaKDL::computeMassMatrix(){
-
-	
 	double S2, C2, S3, C3, S4, C4, S5, C5, S6, C6;
 	double S7, C7, AS17, AS37, AJ117, AJ127, AJ137, AJ317, AJ327, AJ337;
 	double AJA117, AJA217, AJA317, AJA337, XXP6, XYP6, XZP6, YYP6, YZP6, ZZP6;
@@ -706,17 +791,6 @@ void KukaKDL::computeCorioCentriGravTorque(){
 	corioCentriGravTorque.data << N31, N32, N33, N34, N35, N36, N37;
 }
 
-void KukaKDL::computeFrictionTorque(){
-	
-	 frictionTorque.data <<  	FV1*qd(0) + FS1*sign(qd(0)),
-	 							FV2*qd(1) + FS2*sign(qd(1)),
-	 							FV3*qd(2) + FS3*sign(qd(2)),
-								FV4*qd(3) + FS4*sign(qd(3)),
-								FV5*qd(4) + FS5*sign(qd(4)),
-								FV6*qd(5) + FS6*sign(qd(5)),
-								FV7*qd(6) + FS7*sign(qd(6));
-}
-
 void KukaKDL::computeGravityTorque(){
 	
 	double S1, C1, S2, C2, S3, C3, S4, C4, S5, C5;
@@ -843,6 +917,17 @@ void KukaKDL::computeGravityTorque(){
 	
 }
 
+void KukaKDL::computeFrictionTorque(){
+	
+	 frictionTorque.data <<  	FV1*qd(0) + FS1*sign(qd(0)),
+	 							FV2*qd(1) + FS2*sign(qd(1)),
+	 							FV3*qd(2) + FS3*sign(qd(2)),
+								FV4*qd(3) + FS4*sign(qd(3)),
+								FV5*qd(4) + FS5*sign(qd(4)),
+								FV6*qd(5) + FS6*sign(qd(5)),
+								FV7*qd(6) + FS7*sign(qd(6));
+}
+
 void KukaKDL::computeMassMatrixFromKDL(){
     dynModelSolver->JntToMass(q,massMatrixFromKDL);
 }
@@ -855,20 +940,9 @@ void KukaKDL::computeGravityTorqueFromKDL(){
     dynModelSolver->JntToGravity(q,gravityTorqueFromKDL);
 }
 
-KDL::Frame KukaKDL::getSegmentPosition(int segment){
-    KDL::Frame cart_pos;
-    fksolver->JntToCart(q, cart_pos, segment_map[segment]);
-    return cart_pos;
+void KukaKDL::outdate(){
+    inertiaMatrixOutdated = true;
+    corioCentriTorqueOutdated = true;
+    gravityOutdated = true;
 }
 
-KDL::Jacobian KukaKDL::getSegmentJacobian(std::string& segment_name){
-    KDL::Jacobian j(tree.getNrOfJoints());
-    treejacsolver->JntToJac(q, j, segment_name);
-    return j;
-}
-
-KDL::Jacobian KukaKDL::getSegmentJacobian(int segment){
-    KDL::Jacobian j(tree.getNrOfJoints());
-    treejacsolver->JntToJac(q, j, segment_map[segment]);
-    return j;
-}
