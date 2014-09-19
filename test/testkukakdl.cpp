@@ -13,8 +13,8 @@ int main(){
     KukaKDL model;
     int segment = 8;
     double q_1[] = {0.0, -0.0523626, 0.0, 1.51845, 0.0, -0.959863, 0.0};
-    //double q_2[] = {0.829583, 0.118625, 0.0, 1.21193, -1.71438, -0.740072, 1.32882};
-    double q_2[] = {0.,0.,0.,0.,0.,0.,0.};
+    double q_2[] = {0.829583, 0.118625, 0.0, 1.21193, -1.71438, -0.740072, 1.32882};
+    //double q_2[] = {0.,0.,0.,0.,0.,0.,0.};
     std::vector<double> q1(q_1, q_1+7);
     std::vector<double> q2(q_2, q_2+7);
     model.setJointPosition(q1);
@@ -68,6 +68,29 @@ int main(){
     std::cout << "Fric vector from SYMORO+ " << std::endl << std::endl;
     model.computeFrictionTorque();
     std::cout << model.frictionTorque.data << std::endl << std::endl;
+    
+    double q_3[] = {0.661933, 0.81477, -0.831109, 1.19049, 0.697476, -1.09382, 0.0};
+    double q_4[] = {0., -0.0523486, 0., 1.51845, 0., -0.959969, 0.};
+    std::vector<double> q3(q_3, q_3+7);
+    std::vector<double> q4(q_4, q_4+7);
+    
+    model.setJointPosition(q3);
+    std::cout << " q: \t " << model.q.data.transpose() << std::endl << std::endl;
+    std::cout << "Mass Matrix from SYMORO+ " << std::endl << std::endl;
+	model.computeMassMatrix();
+	std::cout << model.massMatrix.data << std::endl << std::endl;
+	std::cout << "Mass Matrix from KDL " << std::endl << std::endl;
+	model.computeMassMatrixFromKDL();
+    std::cout << model.massMatrixFromKDL.data << std::endl << std::endl;
+	
+	model.setJointPosition(q4);
+	std::cout << " q: \t" << model.q.data.transpose() << std::endl << std::endl;
+    std::cout << "Mass Matrix from SYMORO+ " << std::endl << std::endl;
+	model.computeMassMatrix();
+	std::cout << model.massMatrix.data << std::endl << std::endl;
+	std::cout << "Mass Matrix from KDL " << std::endl << std::endl;
+	model.computeMassMatrixFromKDL();
+    std::cout << model.massMatrixFromKDL.data << std::endl << std::endl;
     
     return 0;
 

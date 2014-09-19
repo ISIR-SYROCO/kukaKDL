@@ -404,7 +404,7 @@ void KukaKDL::computeMassMatrix(){
 	A76=AJ337;
 	A77=IA7 + ZZ7_tool;
 
-	massMatrix.data << 	A11, A21, A31, A41, A51, A61, A71,
+	massMatrix.data << 		A11, A21, A31, A41, A51, A61, A71,
 							A21, A22, A32, A42, A52, A62, A72,
 							A31, A32, A33, A43, A53, A63, A73,
 							A41, A42, A43, A44, A54, A64, A74,

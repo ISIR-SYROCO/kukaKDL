@@ -33,7 +33,7 @@
 #define XZ1 0.
 #define YY1 0.
 #define YZ1 0.
-#define ZZ1 3.20
+#define ZZ1 0.01115//3.20
 #define MX1 0.
 #define MY1 0.
 #define MZ1 0.
@@ -44,7 +44,7 @@
 #define XZ2 0.
 #define YY2 0.
 #define YZ2 0.
-#define ZZ2 4.46
+#define ZZ2 1.25//4.46
 #define MX2 0.
 #define MY2 3.37
 #define MZ2 0.
@@ -60,7 +60,7 @@
 #define MY3 0.
 #define MZ3 0.
 #define M3  0.
-#define IA3 2.01
+#define IA3 0.//2.01
 #define XX4 0.368
 #define XY4 0.491
 #define XZ4 0.
@@ -71,7 +71,7 @@
 #define MY4 -1.37
 #define MZ4 0.
 #define M4  0.
-#define IA4 1.92
+#define IA4 0.//1.92
 #define XX5 0.
 #define XY5 0.
 #define XZ5 0.
@@ -82,7 +82,7 @@
 #define MY5 0.049
 #define MZ5 0.
 #define M5  0.
-#define IA5 0.776
+#define IA5 0.//0.776
 #define XX6 0.
 #define XY6 0.
 #define XZ6 0.
@@ -93,20 +93,20 @@
 #define MY6 0.042
 #define MZ6 0.
 #define M6  0.
-#define IA6 0.391
+#define IA6 0.//0.391
 #define XX7 0.
 #define XY7 0.
 #define XZ7 0.
 #define YY7 0.
 #define YZ7 0.
-#define ZZ7 0.000120
+#define ZZ7 0.0001203
 // These 4 have to remain 0 (the tool inertia is accounted for in the code)   
 #define MX7 0.
 #define MY7 0.
 #define MZ7 0.
 #define M7  0.
 //
-#define IA7 0.399
+#define IA7 0.//0.399
 #define FS1 11.9
 #define FV1 14.4
 #define FS2 11.5  
