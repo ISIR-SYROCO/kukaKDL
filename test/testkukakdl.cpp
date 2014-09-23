@@ -27,7 +27,7 @@ int main(){
 
     std::vector<double> q1(q_1, q_1+7);
     std::vector<double> q2(q_2, q_2+7);
-    model.setJointPosition(q1);
+    model.setJointPosition(q2);
     computeSegmentJacobian(model);
 
     //model.setJointPosition(q1);
@@ -36,35 +36,40 @@ int main(){
 
     model.setJointVelocity(q2);
 
-	std::cout << "Mass Matrix from SYMORO+ " << std::endl << std::endl;
+	std::cout << "Mass Matrix " << std::endl << std::endl;
 	model.computeMassMatrix();
 	std::cout << model.massMatrix.data << std::endl << std::endl;
-	std::cout << "Mass Matrix from SYMORO+ : symmetry test " << std::endl << std::endl;
+	std::cout << "Mass Matrix : symmetry test " << std::endl << std::endl;
 	std::cout << model.massMatrix.data - model.massMatrix.data.transpose() << std::endl << std::endl;
-	std::cout << "Mass Matrix from SYMORO+ : >0 test "<< std::endl << std::endl;
+	std::cout << "Mass Matrix : >0 test "<< std::endl << std::endl;
 	Eigen::EigenSolver<Eigen::MatrixXd> es(model.massMatrix.data);
 	std::cout << "The eigenvalues of the matrix are:" << std::endl << es.eigenvalues() << std::endl << std::endl;
     
-    std::cout << "Mass Matrix from SYMORO+ vs from KDL " << std::endl << std::endl;
-    std::cout << model.massMatrix.data << std::endl << std::endl;
-    model.computeMassMatrixFromKDL();
-    std::cout << model.massMatrixFromKDL.data << std::endl << std::endl;
-    
-    std::cout << "Gravity vector from SYMORO+ vs from KDL " << std::endl << std::endl;
+    std::cout << "Gravity vector " << std::endl << std::endl;
     model.computeGravityTorque();
     std::cout << model.gravityTorque.data << std::endl << std::endl;
-    model.computeGravityTorqueFromKDL();
-    std::cout << model.gravityTorqueFromKDL.data << std::endl << std::endl;
+
+    std::cout << "Coriofuge vector  " << std::endl << std::endl;
+    model.computeCorioCentriTorque();
+    std::cout << model.corioCentriTorque.data << std::endl << std::endl;
     
-    std::cout << "CoriofugeFric vector from SYMORO+ vs from KDL " << std::endl << std::endl;
-    model.computeCorioCentriGravTorque();
-    std::cout << model.corioCentriGravTorque.data - model.gravityTorque.data << std::endl << std::endl;
-    model.computeCorioCentriTorqueFromKDL();
-    std::cout << model.corioCentriTorqueFromKDL.data << std::endl << std::endl;
-    
-    std::cout << "Fric vector from SYMORO+ " << std::endl << std::endl;
+    std::cout << "Fric vector " << std::endl << std::endl;
     model.computeFrictionTorque();
     std::cout << model.frictionTorque.data << std::endl << std::endl;
+    
+    double f_[] = {10.0,0.,0.};
+    double t_[] = {0.,0.,0.};
+    double p_[] = {0.,0.,0.1};
+    std::vector<double> f(f_,f_+3);
+    std::vector<double> t(t_,t_+3);
+    std::vector<double> p(p_,p_+3);
+    
+    model.setExternalWrenchPoint(p);
+    model.setExternalMeasuredWrench(f,t);
+    
+    std::cout << "External Wrench Torque " << std::endl << std::endl;
+    model.computeExternalWrenchTorque();
+    std::cout << model.externalWrenchTorque.data << std::endl << std::endl;
     
     return 0;
 
