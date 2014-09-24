@@ -33,15 +33,33 @@ class KukaKDL{
         KDL::Tree tree;
 
         /**
-         * @brief The current joint position.
+         * @brief The joint space mass matrix for the current joint position.
          */
-        KDL::JntArray q;
-        KDL::JntArray qd;
-
         KDL::JntSpaceInertiaMatrix massMatrix;
-        KDL::JntArray corioCentriGravTorque;
+
+        /**
+         * @brief The Coriolis, centrifugal and gravity induced joint torque
+         * for the current joint position and velocity.
+         */        
+        KDL::JntArray corioCentriTorque;
+
+        /**
+         * @brief The friction induced joint torque
+         * for the current joint velocity.
+         */                
         KDL::JntArray frictionTorque;
+
+        /**
+         * @brief The gravity induced joint torque
+         * for the current joint position.
+         */          
         KDL::JntArray gravityTorque;
+        
+        /**
+         * @brief The external wrench induced joint torque
+         * for the current joint position.
+         */          
+        KDL::JntArray externalWrenchTorque;
 
         int nbSegments();
 
@@ -60,6 +78,7 @@ class KukaKDL{
          * @param segment_name the name of the segment.
          */
         KDL::Frame getSegmentPosition(std::string& segment_name);
+
         KDL::Twist getSegmentVelocity(int segment);
 
         /**
@@ -97,25 +116,61 @@ class KukaKDL{
          * @param q_des the joint position in rad.
          */
         void setJointPosition(std::vector<double> &q_des);
-        void setJointVelocity(std::vector<double> &qd_des);
 
         void setLastLinkWithToolInertia(KDL::RotationalInertia toolRInertia,KDL::Vector coordCOG,double m);
         void setExternalToolWrench(KDL::Wrench W_ext);
 
+        /**
+         * @brief Set the joint velocity of the model.
+         *
+         * @param qd_des the joint velocity in rad.
+         */
+        void setJointVelocity(std::vector<double> &qd_des);
+        
+        /**
+         * @brief Set the external measured wrench.
+         *
+         * @param f the external measured force.
+         * @param t the external measured torque.
+         */
+        void setExternalMeasuredWrench(std::vector<double> &f, std::vector<double> &t);
+        
+        /**
+         * @brief Set the external point of measure of the wrench wrt to the last link.
+         *
+         * @param p the  coordinates of the point.
+         */
+        void setExternalWrenchPoint(std::vector<double> &p);
+              
+        /**
+         * @brief Compute the mass matrix of the model.
+         *
+         */        
         void computeMassMatrix();
-        void computeCorioCentriGravTorque();
+        
+        /**
+         * @brief Compute the Coriolis, centrifugal and gravity induced joint torque of the model.
+         *
+         */   
+        void computeCorioCentriTorque();
+        
+        /**
+         * @brief Compute the gravity induced joint torque of the model.
+         *
+         */
         void computeGravityTorque();
+        
+        /**
+         * @brief Compute the friction induced joint torque of the model.
+         *
+         */
         void computeFrictionTorque();
         
-        //  For testing purpose (to compare the dynamics models of the KUKA obtained from SYMORO+ and KDL)
-        KDL::ChainDynParam* dynModelSolver;
-        KDL::JntSpaceInertiaMatrix massMatrixFromKDL;
-        KDL::JntArray corioCentriTorqueFromKDL;
-        KDL::JntArray gravityTorqueFromKDL;
-
-        void computeMassMatrixFromKDL();
-		void computeCorioCentriTorqueFromKDL();
-		void computeGravityTorqueFromKDL();
+        /**
+         * @brief Compute the external wrench induced joint torque of the model.
+         *
+         */
+        void computeExternalWrenchTorque();   
 
         /**
          * @brief Check if inertia matrix is outdated.
@@ -126,13 +181,33 @@ class KukaKDL{
         bool corioCentriTorqueOutdated();
         bool gravityOutdated();
 
-
     private:
         /**
          * @brief Mapping between segment index and segment name.
          */
         std::vector<std::string> segment_map;
         
+        /**
+         * @brief The current joint position.
+         */
+        KDL::JntArray q;
+        
+         /**
+         * @brief The current joint velocity.
+         */
+        KDL::JntArray qd;
+        
+        /**
+         * @brief The current external measured wrench.
+         */
+        KDL::Wrench W_ext;
+        
+        /**
+         * @brief The point of application wrt to the last link 
+         * of the current external measured wrench.
+         */
+        KDL::Vector W_ext_point;
+
         /**
          * @brief The forward kinematic solver.
          */
@@ -143,6 +218,11 @@ class KukaKDL{
          * @brief The jacobian solver.
          */
         KDL::TreeJntToJacSolver* treejacsolver;
+        
+        /**
+         * @brief The dynamic solver.
+         */
+        KDL::ChainDynParam* dynModelSolver;
 
         Eigen::VectorXd actuatedDofs;
         Eigen::VectorXd lowerLimits;
@@ -153,22 +233,6 @@ class KukaKDL{
         bool gravityOutdated_;
 
         void outdate();
-	
-		// Last Link With Tool Inertia parameters
-		double XX7_tool;
-		double XY7_tool;
-		double XZ7_tool;
-		double YY7_tool;
-		double YZ7_tool;
-		double ZZ7_tool; 
-		
-		// Last Link Wrench (expressed in the last link frame)
-		double FX7;
-		double FY7;
-		double FZ7;
-		double CX7;
-		double CY7;
-		double CZ7; 
 };
 
 #endif
