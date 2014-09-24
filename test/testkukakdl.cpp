@@ -28,6 +28,7 @@ int main(){
     std::vector<double> q1(q_1, q_1+7);
     std::vector<double> q2(q_2, q_2+7);
     model.setJointPosition(q1);
+    std::cout << model.getSegmentPosition(8) << std::endl;
     computeSegmentJacobian(model);
 
     //model.setJointPosition(q1);
@@ -65,7 +66,7 @@ int main(){
     std::cout << "Fric vector from SYMORO+ " << std::endl << std::endl;
     model.computeFrictionTorque();
     std::cout << model.frictionTorque.data << std::endl << std::endl;
-    
+
     return 0;
 
 }

@@ -79,6 +79,9 @@ class KukaKDL{
         KDL::Jacobian getSegmentJacobian(std::string& segment_name);
         KDL::Jacobian getJointJacobian(int segment);
 
+        const std::string& getSegmentName(int index);
+        int getSegmentIndex(const std::string name);
+
         Eigen::VectorXd& getActuatedDofs();
         Eigen::VectorXd& getJointLowerLimits();
         Eigen::VectorXd& getJointUpperLimits();
@@ -114,6 +117,16 @@ class KukaKDL{
 		void computeCorioCentriTorqueFromKDL();
 		void computeGravityTorqueFromKDL();
 
+        /**
+         * @brief Check if inertia matrix is outdated.
+         *
+         * @return True if inertia matrix needs to be re computed.
+         */
+        bool inertiaMatrixOutdated();
+        bool corioCentriTorqueOutdated();
+        bool gravityOutdated();
+
+
     private:
         /**
          * @brief Mapping between segment index and segment name.
@@ -135,9 +148,9 @@ class KukaKDL{
         Eigen::VectorXd lowerLimits;
         Eigen::VectorXd upperLimits;
 
-        bool inertiaMatrixOutdated;
-        bool corioCentriTorqueOutdated;
-        bool gravityOutdated;
+        bool inertiaMatrixOutdated_;
+        bool corioCentriTorqueOutdated_;
+        bool gravityOutdated_;
 
         void outdate();
 	

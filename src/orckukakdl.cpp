@@ -20,86 +20,578 @@ Eigen::Twistd KDLTwistToTwist(KDL::Twist twist){
                          twist.vel.x(), twist.vel.y(), twist.vel.z());
 }
 
-int OrcKukaKDL::nbSegments(){
-    return kdlmodel.nbSegments();
+struct OrcKukaKDL::Pimpl{
+    public:
+        //=============== General Variables ================//
+        int                                      nbSeg;
+        Eigen::VectorXd                          actuatedDofs;
+        Eigen::VectorXd                          lowerLimits;
+        Eigen::VectorXd                          upperLimits;
+        Eigen::VectorXd                          q;
+        Eigen::VectorXd                          dq;
+        Eigen::Displacementd                     Hroot;
+        Eigen::Twistd                            Troot;
+        Eigen::VectorXd                          alldq;
+        bool                                     isFreeFlyer;
+        int                                      nbDofs;
+        Eigen::Matrix<double,6,1>                gravity_dtwist;
+
+        //=============== Dynamic Variables ================//
+        Eigen::MatrixXd                          M;
+        Eigen::MatrixXd                          Minv;
+        Eigen::MatrixXd                          B;
+        Eigen::VectorXd                          n;
+        Eigen::VectorXd                          l;
+        Eigen::VectorXd                          g;
+
+        //================= CoM Variables ==================//
+        double                                   total_mass;
+        Eigen::Vector3d                          comPosition;
+        Eigen::Vector3d                          comVelocity;
+        Eigen::Vector3d                          comJdotQdot;
+        Eigen::Matrix<double,3,Eigen::Dynamic>   comJacobian;
+        Eigen::Matrix<double,3,Eigen::Dynamic>   comJacobianDot;
+
+        //=============== Segments Variables ===============//
+        std::vector< double >                                   segMass;
+        std::vector< Eigen::Vector3d >                          segCoM;
+        std::vector< Eigen::Matrix<double,6,6> >                segMassMatrix;
+        std::vector< Eigen::Vector3d >                          segMomentsOfInertia;
+        std::vector< Eigen::Rotation3d >                        segInertiaAxes;
+        std::vector< Eigen::Displacementd >                     segPosition;
+        std::vector< Eigen::Twistd >                            segVelocity;
+        std::vector< Eigen::Matrix<double,6,Eigen::Dynamic> >   segJacobian;
+        std::vector< Eigen::Matrix<double,6,Eigen::Dynamic> >   segJdot;
+        std::vector< Eigen::Matrix<double,6,Eigen::Dynamic> >   segJointJacobian;
+        std::vector< Eigen::Twistd >                            segJdotQdot;
+
+        //================ Other Variables =================//
+        std::map< std::string, int >             segIndexFromName;
+        std::vector< std::string >               segNameFromIndex;
+
+        KukaKDL kdlmodel;
+        
+        Pimpl():
+        nbSeg(8),
+        actuatedDofs(7),
+        lowerLimits(7),
+        upperLimits(7),
+        q(7),
+        dq(7),            
+        Hroot(0, 0, 0),         
+        Troot(0, 0, 0, 0, 0, 0),         
+        alldq(7),         
+        isFreeFlyer(false),   
+        nbDofs(7),        
+        gravity_dtwist(Eigen::Matrix<double,6,1>::Zero()),
+        M(7, 7),   
+        Minv(7, 7),
+        B(7, 7),   
+        n(7),   
+        l(7),   
+        g(7),   
+        total_mass(0.0),    
+        comPosition(0, 0, 0),   
+        comVelocity(0, 0, 0),   
+        comJdotQdot(0, 0, 0),   
+        comJacobian(3, 7),   
+        comJacobianDot(3, 7),
+        segMass(8, double(0)),            
+        segCoM(8, Eigen::Vector3d(0,0,0)),             
+        segMassMatrix(8, Eigen::Matrix<double,6,6>()),      
+        segMomentsOfInertia(8, Eigen::Vector3d(0,0,0)),
+        segInertiaAxes(8, Eigen::Rotation3d()),     
+        segPosition(8, Eigen::Displacementd(0,0,0)),        
+        segVelocity(8, Eigen::Twistd(0,0,0,0,0,0)),        
+        segJacobian(8, Eigen::Matrix<double,6,Eigen::Dynamic>(6,7)),        
+        segJdot(8, Eigen::Matrix<double,6,Eigen::Dynamic>(6,7)),            
+        segJointJacobian(8, Eigen::Matrix<double,6,Eigen::Dynamic>(6,7)),   
+        segJdotQdot(8, Eigen::Twistd(0,0,0,0,0,0)) ,        
+        segIndexFromName(),
+        segNameFromIndex(8, std::string(""))
+        {
+            for(int i=0; i<nbSeg; ++i){
+                double m = kdlmodel.getSegment(i).getInertia().getMass();
+                total_mass += m;
+                segMass[i] = m;
+            }
+            actuatedDofs = kdlmodel.getActuatedDofs();
+            lowerLimits = kdlmodel.getJointLowerLimits();
+            upperLimits = kdlmodel.getJointUpperLimits();
+            gravity_dtwist   << 0, 0 ,0, 0, 0, -9.80665;
+            B.setZero();
+            B.diagonal() = Eigen::VectorXd::Constant(nbDofs, 0.001);
+            l.setZero();
+            comPosition.setZero();
+            comVelocity.setZero();
+            comJdotQdot.setZero();
+            comJacobian.setZero();
+            comJacobianDot.setZero();
+            for(int i=0; i<8; ++i){
+                segCoM[i].setZero();
+                segMassMatrix[i].setZero();
+                segMomentsOfInertia[i].setZero();
+                segJdot[i].setZero();
+            }
+
+            segNameFromIndex.push_back("base");
+            segNameFromIndex.push_back("00");
+            segNameFromIndex.push_back("01");
+            segNameFromIndex.push_back("02");
+            segNameFromIndex.push_back("03");
+            segNameFromIndex.push_back("04");
+            segNameFromIndex.push_back("05");
+            segNameFromIndex.push_back("06");
+            segNameFromIndex.push_back("07");
+            
+            segIndexFromName["base"] = 0;
+            segIndexFromName["00"] = 1;
+            segIndexFromName["01"] = 2;
+            segIndexFromName["02"] = 3;
+            segIndexFromName["03"] = 4;
+            segIndexFromName["04"] = 5;
+            segIndexFromName["05"] = 6;
+            segIndexFromName["06"] = 7;
+            segIndexFromName["07"] = 8;
+
+        }
+
+        ~Pimpl(){
+        }
+
+        int nbSegments()
+        {
+            return nbSeg;
+        }
+
+        const Eigen::VectorXd& getActuatedDofs()
+        {
+            return actuatedDofs;
+        }
+
+        const Eigen::VectorXd& getJointLowerLimits()
+        {
+            return lowerLimits;
+        }
+
+        const Eigen::VectorXd& getJointUpperLimits()
+        {
+            return upperLimits;
+        }
+
+        const Eigen::VectorXd& getJointPositions()
+        {
+            return q;
+        }
+
+        const Eigen::VectorXd& getJointVelocities()
+        {
+            return dq;
+        }
+
+        const Eigen::Displacementd& getFreeFlyerPosition()
+        {
+            return Hroot;
+        }
+
+        const Eigen::Twistd& getFreeFlyerVelocity()
+        {
+            return Troot;
+        }
+
+        const Eigen::MatrixXd& getInertiaMatrix()
+        {
+            if (kdlmodel.inertiaMatrixOutdated())
+            {
+                M.setZero();
+                M = kdlmodel.getInertiaMatrix().data;
+            }
+            return M;
+        }
+
+        const Eigen::MatrixXd& getInertiaMatrixInverse()
+        {
+            if (kdlmodel.inertiaMatrixOutdated())
+            {
+                M = kdlmodel.getInertiaMatrix().data;
+                Minv = M.inverse();
+            }
+            Minv = M.inverse();
+            return Minv;
+        }
+
+        const Eigen::MatrixXd& getDampingMatrix()
+        {
+            return B;
+        }
+
+        const Eigen::VectorXd& getNonLinearTerms()
+        {
+            if (kdlmodel.corioCentriTorqueOutdated())
+            {
+                n.setZero();
+                n = kdlmodel.getNonLinearTerms().data;
+            }
+            return n;
+        }
+
+        const Eigen::VectorXd& getLinearTerms()
+        {
+            return l;
+        }
+
+        const Eigen::VectorXd& getGravityTerms()
+        {
+            if (kdlmodel.gravityOutdated())
+            {
+                g.setZero();
+                g = kdlmodel.getGravityTerms().data;
+            }
+            return g;
+        }
+
+        double getMass()
+        {
+            return total_mass;
+        }
+
+        const Eigen::Vector3d& getCoMPosition()
+        {
+            return comPosition;
+        }
+
+        const Eigen::Vector3d& getCoMVelocity()
+        {
+            return comVelocity;
+        }
+
+        const Eigen::Vector3d& getCoMJdotQdot()
+        {
+            return comJdotQdot;
+        }
+
+        const Eigen::Matrix<double,3,Eigen::Dynamic>& getCoMJacobian()
+        {
+            return comJacobian;
+        }
+
+        const Eigen::Matrix<double,3,Eigen::Dynamic>& getCoMJacobianDot()
+        {
+            return comJacobianDot;
+        }
+
+        double getSegmentMass(int index)
+        {
+            return segMass[index];
+        }
+
+        const Eigen::Vector3d& getSegmentCoM(int index)
+        {
+            return segCoM[index];
+        }
+
+        const Eigen::Matrix<double,6,6>& getSegmentMassMatrix(int index)
+        {
+            return segMassMatrix[index];
+        }
+
+        const Eigen::Vector3d& getSegmentMomentsOfInertia(int index)
+        {
+            return segMomentsOfInertia[index];
+        }
+
+        const Eigen::Rotation3d& getSegmentInertiaAxes(int index)
+        {
+            return segInertiaAxes[index];
+        }
+
+        const Eigen::Displacementd& getSegmentPosition(int index)
+        {
+            segPosition[index] = KDLFrameToDisplacement(kdlmodel.getSegmentPosition(index));
+            return segPosition[index];
+        }
+
+        const Eigen::Twistd& getSegmentVelocity(int index)
+        {
+            segVelocity[index] = KDLTwistToTwist(kdlmodel.getSegmentVelocity(index));
+            return segVelocity[index];
+        }
+
+        const Eigen::Matrix<double,6,Eigen::Dynamic>& getSegmentJacobian(int index)
+        {
+            KDL::Jacobian kdljac(7);
+            kdljac = kdlmodel.getSegmentJacobian(index);
+            segJacobian[index].block<3, 7>(0, 0) = kdljac.data.block<3, 7>(3, 0);
+            segJacobian[index].block<3, 7>(3, 0) = kdljac.data.block<3, 7>(0, 0);
+            return segJacobian[index];
+        }
+
+        const Eigen::Matrix<double,6,Eigen::Dynamic>& getSegmentJdot(int index)
+        {
+            return segJdot[index];
+        }
+
+        const Eigen::Matrix<double,6,Eigen::Dynamic>& getJointJacobian(int index)
+        {
+            segJointJacobian[index] = getSegmentJacobian(index);
+            return segJointJacobian[index];
+        }
+
+        const Eigen::Twistd& getSegmentJdotQdot(int index)
+        {
+            return segJdotQdot[index];
+        }
+
+        void doSetJointPositions(const Eigen::VectorXd& _q)
+        {
+            q = _q;
+            std::vector<double> stdq;
+            for(int i=0; i<q.size();++i){
+                stdq.push_back(q(i));
+            }
+            //(_q.data(), _q.data()+sizeof(_q.data())/sizeof(double));
+            kdlmodel.setJointPosition(stdq);
+        }
+
+        void doSetJointVelocities(const Eigen::VectorXd& _dq)
+        {
+            dq    = _dq;
+            alldq =  dq;
+            std::vector<double> stddq;//(_dq.data(), _dq.data()+sizeof(_dq.data())/sizeof(double));
+            for(int i=0; i<dq.size();++i){
+                stddq.push_back(dq(i));
+            }
+            kdlmodel.setJointVelocity(stddq);
+        }
+
+        void doSetFreeFlyerPosition(const Eigen::Displacementd& _Hroot)
+        {
+            Hroot = _Hroot;
+        }
+
+        void doSetFreeFlyerVelocity(const Eigen::Twistd& _Troot)
+        {
+            Troot = _Troot;
+        }
+
+        int doGetSegmentIndex(const std::string& name)
+        {
+            try
+            {
+                return segIndexFromName.at(name);
+            }
+            catch(std::out_of_range)
+            {
+                std::stringstream ss;
+                ss << "[orckukakdl::doGetSegmentIndex]: The input segment name '"+name+"' does not exist in this robot; possible key:\n";
+                for (std::map< std::string, int >::iterator it = segIndexFromName.begin(); it != segIndexFromName.end(); ++it)
+                    ss << it->first <<"\n";
+                throw std::out_of_range(ss.str());
+            }
+
+        }
+
+        const std::string& doGetSegmentName(int index)
+        {
+            return segNameFromIndex.at(index);
+        }
+};
+
+OrcKukaKDL::OrcKukaKDL(const std::string& robotName) : 
+    orc::Model(robotName, 7, false),
+    pimpl(new Pimpl()){
 }
 
-Eigen::VectorXd& OrcKukaKDL::getActuatedDofs(){
-    return kdlmodel.getActuatedDofs();
+OrcKukaKDL::~OrcKukaKDL(){
+
 }
 
-Eigen::VectorXd& OrcKukaKDL::getJointLowerLimits(){
-    return kdlmodel.getJointLowerLimits();
+int OrcKukaKDL::nbSegments() const
+{
+    return pimpl->nbSegments();
 }
 
-Eigen::VectorXd& OrcKukaKDL::getJointUpperLimits(){
-    return kdlmodel.getJointUpperLimits();
+const Eigen::VectorXd& OrcKukaKDL::getActuatedDofs() const
+{
+    return pimpl->getActuatedDofs();
 }
 
-Eigen::VectorXd& OrcKukaKDL::getJointPositions(){
-    return kdlmodel.getJointPositions().data;
+const Eigen::VectorXd& OrcKukaKDL::getJointLowerLimits() const
+{
+    return pimpl->getJointLowerLimits();
 }
 
-Eigen::VectorXd& OrcKukaKDL::getJointVelocities(){
-    return kdlmodel.getJointVelocities().data;
+const Eigen::VectorXd& OrcKukaKDL::getJointUpperLimits() const
+{
+    return pimpl->getJointUpperLimits();
 }
 
-Eigen::Displacementd& OrcKukaKDL::getFreeFlyerPosition(){
-    return H_root;
+const Eigen::VectorXd& OrcKukaKDL::getJointPositions() const
+{
+    return pimpl->getJointPositions();
 }
 
-Eigen::Twistd& OrcKukaKDL::getFreeFlyerVelocity(){
-    return T_root;
+const Eigen::VectorXd& OrcKukaKDL::getJointVelocities() const
+{
+    return pimpl->getJointVelocities();
 }
 
-Eigen::MatrixXd& OrcKukaKDL::getInertiaMatrix(){
-    return kdlmodel.getInertiaMatrix().data;
+const Eigen::Displacementd& OrcKukaKDL::getFreeFlyerPosition() const
+{
+    return pimpl->getFreeFlyerPosition();
 }
 
-Eigen::MatrixXd OrcKukaKDL::getInertiaMatrixInverse(){
-    return kdlmodel.getInertiaMatrix().data.inverse();
+const Eigen::Twistd& OrcKukaKDL::getFreeFlyerVelocity() const
+{
+    return pimpl->getFreeFlyerVelocity();
 }
 
-const Eigen::MatrixXd& OrcKukaKDL::getDampingMatrix() const{
-    return B;
+const Eigen::MatrixXd& OrcKukaKDL::getInertiaMatrix() const
+{
+    return pimpl->getInertiaMatrix();
 }
 
-Eigen::VectorXd& OrcKukaKDL::getNonLinearTerms(){
-    return kdlmodel.getNonLinearTerms().data;
+const Eigen::MatrixXd& OrcKukaKDL::getInertiaMatrixInverse() const
+{
+    return pimpl->getInertiaMatrixInverse();
 }
 
-const Eigen::VectorXd& OrcKukaKDL::getLinearTerms() const{
-    return l;
+const Eigen::MatrixXd& OrcKukaKDL::getDampingMatrix() const
+{
+    return pimpl->getDampingMatrix();
 }
 
-Eigen::VectorXd& OrcKukaKDL::getGravityTerms(){
-    return kdlmodel.getGravityTerms().data;
+const Eigen::VectorXd& OrcKukaKDL::getNonLinearTerms() const
+{
+    return pimpl->getNonLinearTerms();
 }
 
-double OrcKukaKDL::getSegmentMass(int index){
-    return kdlmodel.getSegment(index).getInertia().getMass();
+const Eigen::VectorXd& OrcKukaKDL::getLinearTerms() const
+{
+    return pimpl->getLinearTerms();
 }
 
-Eigen::Displacementd OrcKukaKDL::getSegmentPosition(int index){
-    return KDLFrameToDisplacement(kdlmodel.getSegmentPosition(index));
+const Eigen::VectorXd& OrcKukaKDL::getGravityTerms() const
+{
+    return pimpl->getGravityTerms();
 }
 
-Eigen::Twistd OrcKukaKDL::getSegmentVelocity(int index){
-    return KDLTwistToTwist(kdlmodel.getSegmentVelocity(index));
+double OrcKukaKDL::getMass() const
+{
+    return pimpl->getMass();
 }
 
-Eigen::Matrix<double,6,Eigen::Dynamic> OrcKukaKDL::getSegmentJacobian(int index){
-    KDL::Jacobian kdljac = kdlmodel.getSegmentJacobian(index);
-    Eigen::Matrix<double, 6, 7> jac;
-    jac.block<3, 7>(0, 0) =  kdljac.data.block<3, 7>(3, 0);
-    jac.block<3, 7>(3, 0) =  kdljac.data.block<3, 7>(0, 0);
-    return jac;
+const Eigen::Vector3d& OrcKukaKDL::getCoMPosition() const
+{
+    return pimpl->getCoMPosition();
 }
 
-Eigen::Matrix<double,6,Eigen::Dynamic>  OrcKukaKDL::getJointJacobian(int index){
-    KDL::Jacobian kdljac = kdlmodel.getJointJacobian(index);
-    Eigen::Matrix<double, 6, 7> jac;
-    jac.block<3, 7>(0, 0) =  kdljac.data.block<3, 7>(3, 0);
-    jac.block<3, 7>(3, 0) =  kdljac.data.block<3, 7>(0, 0);
-    return jac;
+const Eigen::Vector3d& OrcKukaKDL::getCoMVelocity() const
+{
+    return pimpl->getCoMVelocity();
 }
+
+const Eigen::Vector3d& OrcKukaKDL::getCoMJdotQdot() const
+{
+    return pimpl->getCoMJdotQdot();
+}
+
+const Eigen::Matrix<double,3,Eigen::Dynamic>& OrcKukaKDL::getCoMJacobian() const
+{
+    return pimpl->getCoMJacobian();
+}
+
+const Eigen::Matrix<double,3,Eigen::Dynamic>& OrcKukaKDL::getCoMJacobianDot() const
+{
+    return pimpl->getCoMJacobianDot();
+}
+
+double OrcKukaKDL::getSegmentMass(int index) const
+{
+    return pimpl->getSegmentMass(index);
+}
+
+const Eigen::Vector3d& OrcKukaKDL::getSegmentCoM(int index) const
+{
+    return pimpl->getSegmentCoM(index);
+}
+
+const Eigen::Matrix<double,6,6>& OrcKukaKDL::getSegmentMassMatrix(int index) const
+{
+    return pimpl->getSegmentMassMatrix(index);
+}
+
+const Eigen::Vector3d& OrcKukaKDL::getSegmentMomentsOfInertia(int index) const
+{
+    return pimpl->getSegmentMomentsOfInertia(index);
+}
+
+const Eigen::Rotation3d& OrcKukaKDL::getSegmentInertiaAxes(int index) const
+{
+    return pimpl->getSegmentInertiaAxes(index);
+}
+
+const Eigen::Displacementd& OrcKukaKDL::getSegmentPosition(int index) const
+{
+    return pimpl->getSegmentPosition(index);
+}
+
+const Eigen::Twistd& OrcKukaKDL::getSegmentVelocity(int index) const
+{
+    return pimpl->getSegmentVelocity(index);
+}
+
+const Eigen::Matrix<double,6,Eigen::Dynamic>& OrcKukaKDL::getSegmentJacobian(int index) const
+{
+    return pimpl->getSegmentJacobian(index);
+}
+
+const Eigen::Matrix<double,6,Eigen::Dynamic>& OrcKukaKDL::getSegmentJdot(int index) const
+{
+    return pimpl->getSegmentJdot(index);
+}
+
+const Eigen::Matrix<double,6,Eigen::Dynamic>& OrcKukaKDL::getJointJacobian(int index) const
+{
+    return pimpl->getJointJacobian(index);
+}
+
+const Eigen::Twistd& OrcKukaKDL::getSegmentJdotQdot(int index) const
+{
+    return pimpl->getSegmentJdotQdot(index);
+}
+
+void OrcKukaKDL::doSetJointPositions(const Eigen::VectorXd& q)
+{
+    pimpl->doSetJointPositions(q);
+}
+
+void OrcKukaKDL::doSetJointVelocities(const Eigen::VectorXd& dq)
+{
+    pimpl->doSetJointVelocities(dq);
+}
+
+void OrcKukaKDL::doSetFreeFlyerPosition(const Eigen::Displacementd& Hroot)
+{
+    pimpl->doSetFreeFlyerPosition(Hroot);
+}
+
+void OrcKukaKDL::doSetFreeFlyerVelocity(const Eigen::Twistd& Troot)
+{
+    pimpl->doSetFreeFlyerVelocity(Troot);
+}
+
+int OrcKukaKDL::doGetSegmentIndex(const std::string& name) const
+{
+    return pimpl->doGetSegmentIndex(name);
+}
+
+const std::string& OrcKukaKDL::doGetSegmentName(int index) const
+{
+    return pimpl->doGetSegmentName(index);
+}
+
+void OrcKukaKDL::printAllData() const{
+    return;
+}
+

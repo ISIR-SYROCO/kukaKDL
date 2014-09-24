@@ -165,6 +165,19 @@ KDL::Jacobian KukaKDL::getJointJacobian(int segment){
     return getSegmentJacobian(segment);
 }
 
+const std::string& KukaKDL::getSegmentName(int index){
+    return segment_map[index];
+}
+
+int KukaKDL::getSegmentIndex(const std::string name){
+    for(int i=0; i<tree.getNrOfJoints(); ++i){
+        if(segment_map[i] == name){
+            return i;
+        }
+    }
+    return -1;
+}
+
 Eigen::VectorXd& KukaKDL::getActuatedDofs(){
     return actuatedDofs;
 }
@@ -186,25 +199,25 @@ KDL::JntArray& KukaKDL::getJointVelocities(){
 }
 
 KDL::JntSpaceInertiaMatrix& KukaKDL::getInertiaMatrix(){
-    if(inertiaMatrixOutdated == true){
+    if(inertiaMatrixOutdated_ == true){
         computeMassMatrixFromKDL();
-        inertiaMatrixOutdated = false;
+        inertiaMatrixOutdated_ = false;
     }
     return massMatrixFromKDL;
 }
 
 KDL::JntArray& KukaKDL::getNonLinearTerms(){
-    if(corioCentriTorqueOutdated == true){
+    if(corioCentriTorqueOutdated_ == true){
         computeCorioCentriTorqueFromKDL();
-        corioCentriTorqueOutdated = false;
+        corioCentriTorqueOutdated_ = false;
     }
     return corioCentriTorqueFromKDL;
 }
 
 KDL::JntArray& KukaKDL::getGravityTerms(){
-    if(gravityOutdated == true){
+    if(gravityOutdated_ == true){
         computeGravityTorqueFromKDL();
-        gravityOutdated = false;
+        gravityOutdated_ = false;
     }
     return gravityTorqueFromKDL;
 }
@@ -944,9 +957,21 @@ void KukaKDL::computeGravityTorqueFromKDL(){
     dynModelSolver->JntToGravity(q,gravityTorqueFromKDL);
 }
 
+bool KukaKDL::inertiaMatrixOutdated(){
+    return inertiaMatrixOutdated_;
+}
+
+bool KukaKDL::corioCentriTorqueOutdated(){
+    return corioCentriTorqueOutdated_;
+}
+
+bool KukaKDL::gravityOutdated(){
+    return gravityOutdated_;
+}
+
 void KukaKDL::outdate(){
-    inertiaMatrixOutdated = true;
-    corioCentriTorqueOutdated = true;
-    gravityOutdated = true;
+    inertiaMatrixOutdated_ = true;
+    corioCentriTorqueOutdated_ = true;
+    gravityOutdated_ = true;
 }
 

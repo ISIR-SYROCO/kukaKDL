@@ -20,7 +20,7 @@
 #define ALPHA6 (MY_PI/2.0)
 #define ALPHA7 (-MY_PI/2.0)
 
-#define R1 0.
+#define R1 0.31
 #define R2 0.
 #define R3 0.4
 #define R4 0.

@@ -8,26 +8,27 @@
 
 #include "kukakdl/kukakdl.hpp"
 #include "orc/control/Model.h"
+#include <boost/smart_ptr.hpp>
 
 class OrcKukaKDL : public orc::Model{
     public:
         //================ General Methods =================//
-        virtual int                          nbSegments               ();
-        virtual Eigen::VectorXd&       getActuatedDofs          ();
-        virtual Eigen::VectorXd&       getJointLowerLimits      ();
-        virtual Eigen::VectorXd&       getJointUpperLimits      ();
-        virtual Eigen::VectorXd&       getJointPositions        ();
-        virtual Eigen::VectorXd&       getJointVelocities       ();
-        virtual Eigen::Displacementd&  getFreeFlyerPosition     ();
-        virtual Eigen::Twistd&         getFreeFlyerVelocity     ();
+        virtual int                          nbSegments               () const;
+        virtual const Eigen::VectorXd&       getActuatedDofs          () const;
+        virtual const Eigen::VectorXd&       getJointLowerLimits      () const;
+        virtual const Eigen::VectorXd&       getJointUpperLimits      () const;
+        virtual const Eigen::VectorXd&       getJointPositions        () const;
+        virtual const Eigen::VectorXd&       getJointVelocities       () const;
+        virtual const Eigen::Displacementd&  getFreeFlyerPosition     () const;
+        virtual const Eigen::Twistd&         getFreeFlyerVelocity     () const;
 
         //================ Dynamic Methods =================//
-        virtual Eigen::MatrixXd&       getInertiaMatrix         ();
-        virtual Eigen::MatrixXd       getInertiaMatrixInverse  ();
+        virtual const Eigen::MatrixXd&       getInertiaMatrix         () const;
+        virtual const Eigen::MatrixXd&       getInertiaMatrixInverse  () const;
         virtual const Eigen::MatrixXd&       getDampingMatrix         () const;
-        virtual Eigen::VectorXd&       getNonLinearTerms        ();
+        virtual const Eigen::VectorXd&       getNonLinearTerms        () const;
         virtual const Eigen::VectorXd&       getLinearTerms           () const;
-        virtual Eigen::VectorXd&       getGravityTerms          ();
+        virtual const Eigen::VectorXd&       getGravityTerms          () const;
 
         //================== CoM Methods ===================//
         virtual double                                         getMass                     () const;
@@ -38,26 +39,20 @@ class OrcKukaKDL : public orc::Model{
         virtual const Eigen::Matrix<double,3,Eigen::Dynamic>&  getCoMJacobianDot           () const;
 
         //================ Segments Methods ================//
-        virtual double                                         getSegmentMass              (int index);
+        virtual double                                         getSegmentMass              (int index) const;
         virtual const Eigen::Vector3d&                         getSegmentCoM               (int index) const;
         virtual const Eigen::Matrix<double,6,6>&               getSegmentMassMatrix        (int index) const;
         virtual const Eigen::Vector3d&                         getSegmentMomentsOfInertia  (int index) const;
         virtual const Eigen::Rotation3d&                       getSegmentInertiaAxes       (int index) const;
-        virtual Eigen::Displacementd                    getSegmentPosition          (int index);
-        virtual Eigen::Twistd                           getSegmentVelocity          (int index);
-        virtual Eigen::Matrix<double,6,Eigen::Dynamic>  getSegmentJacobian          (int index);
+        virtual const Eigen::Displacementd&                    getSegmentPosition          (int index) const;
+        virtual const Eigen::Twistd&                           getSegmentVelocity          (int index) const;
+        virtual const Eigen::Matrix<double,6,Eigen::Dynamic>&  getSegmentJacobian          (int index) const;
         virtual const Eigen::Matrix<double,6,Eigen::Dynamic>&  getSegmentJdot              (int index) const;
-        virtual Eigen::Matrix<double,6,Eigen::Dynamic>  getJointJacobian            (int index);
+        virtual const Eigen::Matrix<double,6,Eigen::Dynamic>&  getJointJacobian            (int index) const;
         virtual const Eigen::Twistd&                           getSegmentJdotQdot          (int index) const;
 
         //================= Other Methods ==================//
         virtual void printAllData() const;
-
-        KukaKDL kdlmodel;
-        Eigen::Displacementd H_root;
-        Eigen::Twistd T_root;
-        Eigen::MatrixXd B;
-        Eigen::VectorXd l;
 
         OrcKukaKDL(const std::string& robotName);
         virtual ~OrcKukaKDL();
@@ -73,6 +68,19 @@ class OrcKukaKDL : public orc::Model{
         virtual int                 doGetSegmentIndex       (const std::string& name) const;
         virtual const std::string&  doGetSegmentName        (int index) const;
 
+    private:
+        struct Pimpl;
+        boost::shared_ptr< Pimpl > pimpl;
+
 };
+
+extern "C"
+{
+    orc::Model* Create_kukakdl(const std::string& robotName)
+    {
+        return new OrcKukaKDL(robotName);
+    }
+
+}  
 
 #endif /* ORCKUKAKDL_HPP */
