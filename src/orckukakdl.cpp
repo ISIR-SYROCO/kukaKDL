@@ -72,7 +72,7 @@ struct OrcKukaKDL::Pimpl{
         KukaKDL kdlmodel;
         
         Pimpl():
-        nbSeg(8),
+        nbSeg(9),
         actuatedDofs(7),
         lowerLimits(7),
         upperLimits(7),
@@ -96,19 +96,19 @@ struct OrcKukaKDL::Pimpl{
         comJdotQdot(0, 0, 0),   
         comJacobian(3, 7),   
         comJacobianDot(3, 7),
-        segMass(8, double(0)),            
-        segCoM(8, Eigen::Vector3d(0,0,0)),             
-        segMassMatrix(8, Eigen::Matrix<double,6,6>()),      
-        segMomentsOfInertia(8, Eigen::Vector3d(0,0,0)),
-        segInertiaAxes(8, Eigen::Rotation3d()),     
-        segPosition(8, Eigen::Displacementd(0,0,0)),        
-        segVelocity(8, Eigen::Twistd(0,0,0,0,0,0)),        
-        segJacobian(8, Eigen::Matrix<double,6,Eigen::Dynamic>(6,7)),        
-        segJdot(8, Eigen::Matrix<double,6,Eigen::Dynamic>(6,7)),            
-        segJointJacobian(8, Eigen::Matrix<double,6,Eigen::Dynamic>(6,7)),   
-        segJdotQdot(8, Eigen::Twistd(0,0,0,0,0,0)) ,        
+        segMass(9, double(0)),            
+        segCoM(9, Eigen::Vector3d(0,0,0)),             
+        segMassMatrix(9, Eigen::Matrix<double,6,6>()),      
+        segMomentsOfInertia(9, Eigen::Vector3d(0,0,0)),
+        segInertiaAxes(9, Eigen::Rotation3d()),     
+        segPosition(9, Eigen::Displacementd(0,0,0)),        
+        segVelocity(9, Eigen::Twistd(0,0,0,0,0,0)),        
+        segJacobian(9, Eigen::Matrix<double,6,Eigen::Dynamic>(6,7)),        
+        segJdot(9, Eigen::Matrix<double,6,Eigen::Dynamic>(6,7)),            
+        segJointJacobian(9, Eigen::Matrix<double,6,Eigen::Dynamic>(6,7)),   
+        segJdotQdot(9, Eigen::Twistd(0,0,0,0,0,0)) ,        
         segIndexFromName(),
-        segNameFromIndex(8, std::string(""))
+        segNameFromIndex(9, std::string(""))
         {
             for(int i=0; i<nbSeg; ++i){
                 double m = kdlmodel.getSegment(i).getInertia().getMass();
