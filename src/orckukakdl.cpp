@@ -321,6 +321,7 @@ struct OrcKukaKDL::Pimpl{
         {
             KDL::Jacobian kdljac(7);
             kdljac = kdlmodel.getSegmentJacobian(index);
+			kdljac.changeBase(kdlmodel.getSegmentPosition(index).M.Inverse());
             segJacobian[index].block<3, 7>(0, 0) = kdljac.data.block<3, 7>(3, 0);
             segJacobian[index].block<3, 7>(3, 0) = kdljac.data.block<3, 7>(0, 0);
             return segJacobian[index];
