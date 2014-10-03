@@ -313,7 +313,7 @@ struct OrcKukaKDL::Pimpl{
 
         const Eigen::Twistd& getSegmentVelocity(int index)
         {
-            segVelocity[index] = KDLTwistToTwist(kdlmodel.getSegmentVelocity(index));
+            segVelocity[index] = KDLTwistToTwist(kdlmodel.getSegmentVelocity(index)).changeFrame(getSegmentPosition(index).getRotation().inverse());	
             return segVelocity[index];
         }
 
